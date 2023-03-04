@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <memory>
 
-#include "safetyhook/Context.hpp"
-#include "safetyhook/InlineHook.hpp"
+#include "Context.hpp"
+#include "InlineHook.hpp"
 
 namespace safetyhook {
 class Factory;

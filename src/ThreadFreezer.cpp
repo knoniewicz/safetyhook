@@ -1,19 +1,18 @@
-#include <algorithm>
-
 #include <Windows.h>
 #include <winternl.h>
 
-#include "safetyhook/ThreadFreezer.hpp"
+#include <TlHelp32.h>
 
-extern "C" {
-NTSTATUS
-NTAPI
-NtGetNextThread(HANDLE ProcessHandle, HANDLE ThreadHandle, ACCESS_MASK DesiredAccess, ULONG HandleAttributes,
-    ULONG Flags, PHANDLE NewThreadHandle);
-}
+#include "../include/safetyhook/ThreadFreezer.hpp"
 
 namespace safetyhook {
 ThreadFreezer::ThreadFreezer() {
+    auto snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+
+    if (snapshot == INVALID_HANDLE_VALUE) {
+        return;
+    }
+
     auto peb = reinterpret_cast<uintptr_t>(NtCurrentTeb()->ProcessEnvironmentBlock);
 
 #if defined(_M_X64)
@@ -25,45 +24,41 @@ ThreadFreezer::ThreadFreezer() {
 #endif
     EnterCriticalSection(loader_lock);
 
-    size_t num_threads_frozen{};
+    auto pid = GetCurrentProcessId();
+    auto tid = GetCurrentThreadId();
+    THREADENTRY32 te{};
 
-    do {
-        num_threads_frozen = m_frozen_threads.size();
-        HANDLE thread{};
+    te.dwSize = sizeof(te);
 
-        while (true) {
-            const auto status = NtGetNextThread(GetCurrentProcess(), thread,
-                THREAD_QUERY_LIMITED_INFORMATION | THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT | THREAD_SET_CONTEXT, 0,
-                0, &thread);
-
-            if (status != 0) {
-                break;
-            }
-
-            const auto thread_id = GetThreadId(thread);
-            const auto already_frozen = std::any_of(m_frozen_threads.begin(), m_frozen_threads.end(),
-                [=](const auto& thread) { return thread.thread_id == thread_id; });
-
-            // Don't freeze ourselves or threads we already froze.
-            if (thread_id == 0 || thread_id == GetCurrentThreadId() || already_frozen) {
-                CloseHandle(thread);
+    if (Thread32First(snapshot, &te) != FALSE) {
+        do {
+            if (te.th32OwnerProcessID != pid || te.th32ThreadID == tid) {
                 continue;
             }
 
-            auto thread_ctx = CONTEXT{};
+            FrozenThread thread{};
 
-            thread_ctx.ContextFlags = CONTEXT_FULL;
+            thread.thread_id = te.th32ThreadID;
+            thread.handle =
+                OpenThread(THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT | THREAD_SET_CONTEXT, FALSE, te.th32ThreadID);
 
-            if (SuspendThread(thread) == (DWORD)-1 || GetThreadContext(thread, &thread_ctx) == FALSE) {
-                CloseHandle(thread);
+            if (thread.handle == NULL) {
                 continue;
             }
 
-            m_frozen_threads.push_back({thread_id, thread, thread_ctx});
-        }
-    } while (num_threads_frozen != m_frozen_threads.size());
+            thread.ctx.ContextFlags = CONTEXT_FULL;
+
+            if (SuspendThread(thread.handle) == (DWORD)-1 || GetThreadContext(thread.handle, &thread.ctx) == FALSE) {
+                CloseHandle(thread.handle);
+                continue;
+            }
+
+            m_frozen_threads.emplace_back(thread);
+        } while (Thread32Next(snapshot, &te));
+    }
 
     LeaveCriticalSection(loader_lock);
+    CloseHandle(snapshot);
 }
 
 ThreadFreezer::~ThreadFreezer() {

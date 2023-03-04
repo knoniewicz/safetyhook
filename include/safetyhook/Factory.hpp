@@ -5,7 +5,7 @@
 #include <mutex>
 #include <vector>
 
-#include "safetyhook/Builder.hpp"
+#include "Builder.hpp"
 
 namespace safetyhook {
 class Factory final : public std::enable_shared_from_this<Factory> {

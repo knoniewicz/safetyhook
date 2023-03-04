@@ -3,13 +3,13 @@
 
 #include <Windows.h>
 
-#include <disasmtypes.h>
+#include <bddisasm/disasmtypes.h>
 
-#include <bddisasm.h>
+#include <bddisasm/bddisasm.h>
 
-#include "safetyhook/Factory.hpp"
+#include "../include/safetyhook/Factory.hpp"
 
-#include "safetyhook/InlineHook.hpp"
+#include "../include/safetyhook/InlineHook.hpp"
 
 namespace safetyhook {
 class UnprotectMemory {

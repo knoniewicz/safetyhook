@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include "safetyhook/Context.hpp"
+#include "Context.hpp"
 
 namespace safetyhook {
 class InlineHook;

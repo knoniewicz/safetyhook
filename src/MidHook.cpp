@@ -1,9 +1,9 @@
 #include <algorithm>
 
-#include "safetyhook/Factory.hpp"
-#include "safetyhook/InlineHook.hpp"
+#include "../include/safetyhook/Factory.hpp"
+#include "../include/safetyhook/InlineHook.hpp"
 
-#include "safetyhook/MidHook.hpp"
+#include "../include/safetyhook/MidHook.hpp"
 
 namespace safetyhook {
 

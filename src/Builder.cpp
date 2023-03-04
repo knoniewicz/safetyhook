@@ -1,9 +1,9 @@
-#include "safetyhook/Factory.hpp"
-#include "safetyhook/InlineHook.hpp"
-#include "safetyhook/MidHook.hpp"
-#include "safetyhook/ThreadFreezer.hpp"
+#include "../include/safetyhook/Factory.hpp"
+#include "../include/safetyhook/InlineHook.hpp"
+#include "../include/safetyhook/MidHook.hpp"
+#include "../include/safetyhook/ThreadFreezer.hpp"
 
-#include "safetyhook/Builder.hpp"
+#include "../include/safetyhook/Builder.hpp"
 
 namespace safetyhook {
 Builder::~Builder() {
